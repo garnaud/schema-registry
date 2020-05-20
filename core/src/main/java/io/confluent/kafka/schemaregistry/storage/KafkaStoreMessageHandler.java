@@ -136,14 +136,17 @@ public class KafkaStoreMessageHandler
       // consumers should be able to access the schemas by id. This is guaranteed when the schema is
       // re-registered again and hence we can tombstone the record.
       if (schemaValue.isDeleted()) {
-        this.lookupCache.schemaDeleted(schemaKey, schemaValue);
+        lookupCache.schemaDeleted(schemaKey, schemaValue);
+        schemaRegistry.getSchemaRegistryMetrics().schemaDeleted(schemaValue);
       } else {
         // Update the maximum id seen so far
         idGenerator.schemaRegistered(schemaKey, schemaValue);
         lookupCache.schemaRegistered(schemaKey, schemaValue);
+        schemaRegistry.getSchemaRegistryMetrics().schemaRegistered(schemaValue);
       }
     } else {
       lookupCache.schemaTombstoned(schemaKey, oldSchemaValue);
+      schemaRegistry.getSchemaRegistryMetrics().schemaDeleted(oldSchemaValue);
     }
   }
 }

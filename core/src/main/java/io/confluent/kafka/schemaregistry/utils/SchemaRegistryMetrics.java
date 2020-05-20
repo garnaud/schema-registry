@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.kafka.schemaregistry.utils;
 
 import com.google.common.collect.ImmutableMap;
@@ -18,7 +33,6 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Value;
 import org.apache.kafka.common.utils.SystemTime;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +45,7 @@ public class SchemaRegistryMetrics {
   private final Sensor masterNodeSensor;
   private final Map<String, SchemaCountSensor> schemaCreatedByType = new ConcurrentHashMap<>();
   private final Map<String, SchemaCountSensor> schemaDeletedByType = new ConcurrentHashMap<>();
+  private final Map<String, String> configuredTags;
 
   public SchemaRegistryMetrics(SchemaRegistryConfig config) {
     MetricConfig metricConfig =
@@ -47,9 +62,8 @@ public class SchemaRegistryMetrics {
     this.metrics = new Metrics(metricConfig, reporters, new SystemTime());
     this.masterNodeSensor = metrics.sensor("master-slave-role");
 
-    Map<String, String> configuredTags = Application.parseListToMap(
-            config.getList(RestConfig.METRICS_TAGS_CONFIG)
-    );
+    this.configuredTags =
+            Application.parseListToMap(config.getList(RestConfig.METRICS_TAGS_CONFIG));
     MetricName
             m = new MetricName("master-slave-role", "master-slave-role",
             "1.0 indicates the node is the active master in the cluster and is the"
@@ -64,13 +78,15 @@ public class SchemaRegistryMetrics {
 
   public void schemaRegistered(SchemaValue schemaValue) {
     String type = getSchemaType(schemaValue);
-    SchemaCountSensor sensor = schemaCreatedByType.computeIfAbsent(type, t -> new SchemaCountSensor(getMetricDescriptor(t)));
+    SchemaCountSensor sensor = schemaCreatedByType.computeIfAbsent(type,
+        t -> new SchemaCountSensor(getMetricDescriptor(t)));
     sensor.increment();
   }
 
   public void schemaDeleted(SchemaValue schemaValue) {
     String type = getSchemaType(schemaValue);
-    SchemaCountSensor sensor = schemaDeletedByType.computeIfAbsent(type, t -> new SchemaCountSensor(getMetricDescriptor(t)));
+    SchemaCountSensor sensor = schemaDeletedByType.computeIfAbsent(type,
+        t -> new SchemaCountSensor(getMetricDescriptor(t)));
     sensor.increment();
   }
 
@@ -79,17 +95,13 @@ public class SchemaRegistryMetrics {
   }
 
   private class SchemaCountSensor {
-    private AtomicLong count = new AtomicLong(0);
-    private Sensor sensor;
+    private final AtomicLong count = new AtomicLong();
+    private final Sensor sensor;
 
     public SchemaCountSensor(MetricDescriptor md) {
       sensor = metrics.sensor(md.sensorName);
-      Map<String, String> tags = new LinkedHashMap<>();
-      sensor.add(new MetricName("num-schemas", md.group, md.description, tags), new Value());
-    }
-
-    public long get() {
-      return count.get();
+      sensor.add(new MetricName("num-schemas", md.group, md.description, configuredTags),
+                 new Value());
     }
 
     public void increment() {
@@ -112,10 +124,9 @@ public class SchemaRegistryMetrics {
                   ProtobufSchema.TYPE, MetricDescriptor.PROTOBUF);
 
   private enum MetricDescriptor {
-    NULL("qm-status", "status", "Number of registered schemas"),
-    AVRO("qm-status-avro", "status_avro", "Number of registered Avro schemas"),
-    JSON("qm-status-json", "status_json", "Number of registered JSON schemas"),
-    PROTOBUF("qm-status-protobuf", "status_protobuf", "Number of registered Protobuf schemas");
+    AVRO("count-avro", "count_avro", "Number of registered Avro schemas"),
+    JSON("count-json", "count_json", "Number of registered JSON schemas"),
+    PROTOBUF("count-protobuf", "count_protobuf", "Number of registered Protobuf schemas");
 
     public final String group;
     public final String description;

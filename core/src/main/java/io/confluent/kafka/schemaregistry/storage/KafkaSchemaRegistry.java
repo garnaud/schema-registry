@@ -146,11 +146,11 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
     this.serializer = serializer;
     this.defaultCompatibilityLevel = config.compatibilityType();
     this.defaultMode = Mode.READWRITE;
+    this.providers = initProviders(config);
+    this.schemaRegistryMetrics = new SchemaRegistryMetrics(config);
     this.lookupCache = lookupCache();
     this.idGenerator = identityGenerator(config);
     this.kafkaStore = kafkaStore(config);
-    this.providers = initProviders(config);
-    this.schemaRegistryMetrics = new SchemaRegistryMetrics(config);
   }
 
   private Map<String, SchemaProvider> initProviders(SchemaRegistryConfig config) {
@@ -219,6 +219,10 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
 
   protected IdGenerator getIdentityGenerator() {
     return idGenerator;
+  }
+
+  public SchemaRegistryMetrics getSchemaRegistryMetrics() {
+    return schemaRegistryMetrics;
   }
 
   /**

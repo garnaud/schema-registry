@@ -19,7 +19,6 @@ import io.confluent.kafka.schemaregistry.CompatibilityLevel;
 import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
 import io.confluent.kafka.schemaregistry.storage.exceptions.StoreException;
 import io.confluent.kafka.schemaregistry.storage.exceptions.StoreInitializationException;
-import io.confluent.kafka.schemaregistry.utils.SchemaRegistryMetrics;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +43,6 @@ public class InMemoryCache<K, V> implements LookupCache<K, V> {
   private final Map<Integer, Map<String, Integer>> guidToSubjectVersions;
   private final Map<MD5, Integer> hashToGuid;
   private final Map<SchemaKey, Set<Integer>> referencedBy;
-  private final SchemaRegistryMetrics schemaRegistryMetrics;
 
   public InMemoryCache() {
     this(new ConcurrentSkipListMap<>());
@@ -55,7 +53,6 @@ public class InMemoryCache<K, V> implements LookupCache<K, V> {
     this.guidToSubjectVersions = new ConcurrentHashMap<>();
     this.hashToGuid = new ConcurrentHashMap<>();
     this.referencedBy = new ConcurrentHashMap<>();
-    this.schemaRegistryMetrics = new SchemaRegistryMetrics();
   }
 
   public void init() throws StoreInitializationException {
@@ -156,7 +153,6 @@ public class InMemoryCache<K, V> implements LookupCache<K, V> {
         }
       }
     }
-    schemaRegistryMetrics.schemaDeleted(schemaValue);
   }
 
   @Override
@@ -173,7 +169,6 @@ public class InMemoryCache<K, V> implements LookupCache<K, V> {
     if (subjectVersions.isEmpty()) {
       guidToSubjectVersions.remove(schemaValue.getId());
     }
-    schemaRegistryMetrics.schemaDeleted(schemaValue);
   }
 
   @Override
@@ -187,7 +182,6 @@ public class InMemoryCache<K, V> implements LookupCache<K, V> {
       Set<Integer> refBy = referencedBy.computeIfAbsent(refKey, k -> new HashSet<>());
       refBy.add(schemaValue.getId());
     }
-    schemaRegistryMetrics.schemaRegistered(schemaValue);
   }
 
   private void addToSchemaHashToGuid(SchemaKey schemaKey, SchemaValue schemaValue) {
