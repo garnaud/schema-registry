@@ -42,10 +42,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SchemaRegistryMetrics {
 
   private final Metrics metrics;
+  private final Map<String, String> configuredTags;
+
   private final Sensor masterNodeSensor;
   private final Map<String, SchemaCountSensor> schemaCreatedByType = new ConcurrentHashMap<>();
   private final Map<String, SchemaCountSensor> schemaDeletedByType = new ConcurrentHashMap<>();
-  private final Map<String, String> configuredTags;
 
   public SchemaRegistryMetrics(SchemaRegistryConfig config) {
     MetricConfig metricConfig =
