@@ -20,6 +20,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.schemaregistry.rest.SchemaRegistryConfig;
+import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
 import io.confluent.kafka.schemaregistry.storage.SchemaValue;
 import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
@@ -32,19 +33,27 @@ import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Value;
 import org.apache.kafka.common.utils.SystemTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.jar.Manifest;
 
 public class SchemaRegistryMetrics {
+
+  private static final Logger log = LoggerFactory.getLogger(SchemaRegistryMetrics.class);
 
   private static final String JMX_PREFIX = "kafka.schema.registry";
 
   private final Metrics metrics;
   private final Map<String, String> configuredTags;
+  private final String commitId;
 
   private final Map<String, SchemaCountSensor> schemaCreatedByType = new ConcurrentHashMap<>();
   private final Map<String, SchemaCountSensor> schemaDeletedByType = new ConcurrentHashMap<>();
@@ -59,6 +68,7 @@ public class SchemaRegistryMetrics {
   public SchemaRegistryMetrics(SchemaRegistryConfig config) {
     this.configuredTags =
             Application.parseListToMap(config.getList(RestConfig.METRICS_TAGS_CONFIG));
+    this.commitId = getCommitId();
 
     MetricConfig metricConfig =
             new MetricConfig().samples(config.getInt(ProducerConfig.METRICS_NUM_SAMPLES_CONFIG))
@@ -176,4 +186,24 @@ public class SchemaRegistryMetrics {
       this.description = description;
     }
   }
+
+  private static String getCommitId() {
+    try {
+      final String fileName = "/META-INF/MANIFEST.MF";
+      final InputStream manifestFile = KafkaSchemaRegistry.class.getResourceAsStream(fileName);
+      if (manifestFile != null) {
+        String commitId = new Manifest(manifestFile).getMainAttributes().getValue("Commit-ID");
+        if (commitId != null) {
+          return commitId;
+        }
+        log.error("Missing Commit-ID entry");
+      } else {
+        log.error("Missing manifest file");
+      }
+    } catch (IOException e) {
+      log.error("Cannot open manifest file", e);
+    }
+    return "Unknown";
+  }
+
 }
