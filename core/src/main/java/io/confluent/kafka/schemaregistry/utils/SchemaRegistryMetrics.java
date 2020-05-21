@@ -44,11 +44,17 @@ public class SchemaRegistryMetrics {
   private final Metrics metrics;
   private final Map<String, String> configuredTags;
 
-  private final Sensor masterNodeSensor;
   private final Map<String, SchemaCountSensor> schemaCreatedByType = new ConcurrentHashMap<>();
   private final Map<String, SchemaCountSensor> schemaDeletedByType = new ConcurrentHashMap<>();
 
+  private final SchemaRegistryMetric masterNodeMetric;
+  private final SchemaRegistryMetric schemasCreated;
+  private final SchemaRegistryMetric schemasDeleted;
+
   public SchemaRegistryMetrics(SchemaRegistryConfig config) {
+    this.configuredTags =
+            Application.parseListToMap(config.getList(RestConfig.METRICS_TAGS_CONFIG));
+
     MetricConfig metricConfig =
             new MetricConfig().samples(config.getInt(ProducerConfig.METRICS_NUM_SAMPLES_CONFIG))
                     .timeWindow(config.getLong(ProducerConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG),
@@ -61,20 +67,21 @@ public class SchemaRegistryMetrics {
     reporters.add(new JmxReporter(jmxPrefix));
 
     this.metrics = new Metrics(metricConfig, reporters, new SystemTime());
-    this.masterNodeSensor = metrics.sensor("master-slave-role");
-
-    this.configuredTags =
-            Application.parseListToMap(config.getList(RestConfig.METRICS_TAGS_CONFIG));
-    MetricName
-            m = new MetricName("master-slave-role", "master-slave-role",
+    this.masterNodeMetric = new SchemaRegistryMetric(metrics, "master-slave-role",
+            new MetricName("master-slave-role", "master-slave-role",
             "1.0 indicates the node is the active master in the cluster and is the"
                     + " node where all register schema and config update requests are "
-                    + "served.", configuredTags);
-    this.masterNodeSensor.add(m, new Value());
+                    + "served.", configuredTags));
+
+    this.schemasCreated = new SchemaRegistryMetric(metrics, "registered-count",
+            new MetricName("num-schemas", "count", "Number of registered schemas",
+                           configuredTags));
+    this.schemasDeleted = new SchemaRegistryMetric(metrics, "deleted-count",
+            new MetricName("num-schemas", "count", "Number of deleted schemas", configuredTags));
   }
 
   public void setMaster(boolean isMaster) {
-    masterNodeSensor.record(isMaster ? 1.0 : 0.0);
+    masterNodeMetric.set(isMaster ? 1 : 0);
   }
 
   public void schemaRegistered(SchemaValue schemaValue) {
@@ -125,6 +132,7 @@ public class SchemaRegistryMetrics {
                   ProtobufSchema.TYPE, MetricDescriptor.PROTOBUF);
 
   private enum MetricDescriptor {
+    TOTAL("count", "count", "Number of registered schemas"),
     AVRO("count-avro", "count_avro", "Number of registered Avro schemas"),
     JSON("count-json", "count_json", "Number of registered JSON schemas"),
     PROTOBUF("count-protobuf", "count_protobuf", "Number of registered Protobuf schemas");
