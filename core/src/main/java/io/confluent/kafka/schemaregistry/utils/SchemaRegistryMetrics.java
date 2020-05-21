@@ -50,6 +50,9 @@ public class SchemaRegistryMetrics {
   private final SchemaRegistryMetric masterNodeMetric;
   private final SchemaRegistryMetric schemasCreated;
   private final SchemaRegistryMetric schemasDeleted;
+  private final SchemaRegistryMetric customSchemaProviders;
+  private final SchemaRegistryMetric apiCallsSuccess;
+  private final SchemaRegistryMetric apiCallsFailure;
 
   public SchemaRegistryMetrics(SchemaRegistryConfig config) {
     this.configuredTags =
@@ -78,13 +81,30 @@ public class SchemaRegistryMetrics {
                            configuredTags));
     this.schemasDeleted = new SchemaRegistryMetric(metrics, "deleted-count",
             new MetricName("num-schemas", "count", "Number of deleted schemas", configuredTags));
+
+    this.customSchemaProviders = new SchemaRegistryMetric(metrics, "custom-schema-provider-count",
+            new MetricName("custom-count", "count", "Number of custom schema providers",
+                    configuredTags));
+
+    this.apiCallsSuccess = new SchemaRegistryMetric(metrics, "api-success",
+            new MetricName("api-success-count", "count", "Number of successfull API calls",
+                    configuredTags));
+
+    this.apiCallsFailure = new SchemaRegistryMetric(metrics, "api-failure",
+            new MetricName("api-failure-count", "failure-count", "Number of failed API calls",
+                    configuredTags));
   }
 
   public void setMaster(boolean isMaster) {
     masterNodeMetric.set(isMaster ? 1 : 0);
   }
 
+  public void setCustomSchemaProviders(long count) {
+    customSchemaProviders.set(count);
+  }
+
   public void schemaRegistered(SchemaValue schemaValue) {
+    schemasCreated.increment();
     String type = getSchemaType(schemaValue);
     SchemaCountSensor sensor = schemaCreatedByType.computeIfAbsent(type,
         t -> new SchemaCountSensor(getMetricDescriptor(t)));
@@ -92,6 +112,7 @@ public class SchemaRegistryMetrics {
   }
 
   public void schemaDeleted(SchemaValue schemaValue) {
+    schemasDeleted.increment();
     String type = getSchemaType(schemaValue);
     SchemaCountSensor sensor = schemaDeletedByType.computeIfAbsent(type,
         t -> new SchemaCountSensor(getMetricDescriptor(t)));

@@ -146,8 +146,8 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
     this.serializer = serializer;
     this.defaultCompatibilityLevel = config.compatibilityType();
     this.defaultMode = Mode.READWRITE;
-    this.providers = initProviders(config);
     this.schemaRegistryMetrics = new SchemaRegistryMetrics(config);
+    this.providers = initProviders(config);
     this.lookupCache = lookupCache();
     this.idGenerator = identityGenerator(config);
     this.kafkaStore = kafkaStore(config);
@@ -170,6 +170,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
             schemaProviderConfigs);
     // Allow custom providers to override default providers
     registerProviders(providerMap, customSchemaProviders);
+    schemaRegistryMetrics.setCustomSchemaProviders(customSchemaProviders.size());
     return providerMap;
   }
 
