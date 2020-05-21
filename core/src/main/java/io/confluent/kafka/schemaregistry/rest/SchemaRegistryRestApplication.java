@@ -17,7 +17,7 @@ package io.confluent.kafka.schemaregistry.rest;
 
 import io.confluent.kafka.schemaregistry.exceptions.SchemaRegistryException;
 import io.confluent.kafka.schemaregistry.rest.extensions.SchemaRegistryResourceExtension;
-import io.confluent.kafka.schemaregistry.rest.resources.ApiCallFilter;
+import io.confluent.kafka.schemaregistry.rest.resources.RestCallMetricFilter;
 import io.confluent.kafka.schemaregistry.rest.resources.CompatibilityResource;
 import io.confluent.kafka.schemaregistry.rest.resources.ConfigResource;
 import io.confluent.kafka.schemaregistry.rest.resources.ModeResource;
@@ -103,7 +103,7 @@ public class SchemaRegistryRestApplication extends Application<SchemaRegistryCon
     config.register(new CompatibilityResource(schemaRegistry));
     config.register(new ModeResource(schemaRegistry));
     config.register(new ServerMetadataResource(schemaRegistry, schemaRegistryConfig));
-    config.register(new ApiCallFilter(schemaRegistry));
+    config.register(new RestCallMetricFilter(schemaRegistry));
 
     if (schemaRegistryResourceExtensions != null) {
       try {

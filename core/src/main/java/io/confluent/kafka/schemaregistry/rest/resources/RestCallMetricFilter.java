@@ -23,10 +23,10 @@ import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import java.io.IOException;
 
-public class ApiCallFilter implements ContainerResponseFilter {
+public class RestCallMetricFilter implements ContainerResponseFilter {
   private final SchemaRegistryMetrics schemaRegistryMetrics;
 
-  public ApiCallFilter(KafkaSchemaRegistry schemaRegistry) {
+  public RestCallMetricFilter(KafkaSchemaRegistry schemaRegistry) {
     this.schemaRegistryMetrics = schemaRegistry.getSchemaRegistryMetrics();
   }
 
