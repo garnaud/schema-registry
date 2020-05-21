@@ -78,9 +78,10 @@ public class SchemaRegistryMetrics {
 
     this.schemasCreated = new SchemaRegistryMetric(metrics, "registered-count",
             new MetricName("num-schemas-created", "count", "Number of registered schemas",
-                           configuredTags));
+                    configuredTags));
     this.schemasDeleted = new SchemaRegistryMetric(metrics, "deleted-count",
-            new MetricName("num-schemas-deleted", "count", "Number of deleted schemas", configuredTags));
+            new MetricName("num-schemas-deleted", "count", "Number of deleted schemas",
+                    configuredTags));
 
     this.customSchemaProviders = new SchemaRegistryMetric(metrics, "custom-schema-provider-count",
             new MetricName("custom-count", "provider-count", "Number of custom schema providers",

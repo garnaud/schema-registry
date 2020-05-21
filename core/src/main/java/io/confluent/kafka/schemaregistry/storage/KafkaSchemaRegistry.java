@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.HostnameVerifier;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,6 +86,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
 public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaRegistry {
@@ -151,6 +153,26 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
     this.lookupCache = lookupCache();
     this.idGenerator = identityGenerator(config);
     this.kafkaStore = kafkaStore(config);
+    getCommitId();
+  }
+
+  private String getCommitId() {
+    try {
+      final String fileName = "/META-INF/MANIFEST.MF";
+      final InputStream manifestFile = KafkaSchemaRegistry.class.getResourceAsStream(fileName);
+      if (manifestFile != null) {
+        String commitId = new Manifest(manifestFile).getMainAttributes().getValue("Commit-ID");
+        if (commitId != null) {
+          return commitId;
+        }
+        log.error("Missing Commit-ID entry");
+      } else {
+        log.error("Missing manifest file");
+      }
+    } catch (IOException e) {
+      log.error("Cannot open manifest file", e);
+    }
+    return "Unknown";
   }
 
   private Map<String, SchemaProvider> initProviders(SchemaRegistryConfig config) {
