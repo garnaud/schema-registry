@@ -170,7 +170,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
             schemaProviderConfigs);
     // Allow custom providers to override default providers
     registerProviders(providerMap, customSchemaProviders);
-    schemaRegistryMetrics.setCustomSchemaProviders(customSchemaProviders.size());
+    schemaRegistryMetrics.setCustomSchemaProvidersCount(customSchemaProviders.size());
     return providerMap;
   }
 

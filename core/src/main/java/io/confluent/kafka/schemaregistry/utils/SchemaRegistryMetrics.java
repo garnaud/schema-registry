@@ -41,13 +41,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class SchemaRegistryMetrics {
 
+  private static final String JMX_PREFIX = "kafka.schema.registry";
+
   private final Metrics metrics;
   private final Map<String, String> configuredTags;
 
   private final Map<String, SchemaCountSensor> schemaCreatedByType = new ConcurrentHashMap<>();
   private final Map<String, SchemaCountSensor> schemaDeletedByType = new ConcurrentHashMap<>();
 
-  private final SchemaRegistryMetric masterNodeMetric;
+  private final SchemaRegistryMetric isMasterNode;
   private final SchemaRegistryMetric schemasCreated;
   private final SchemaRegistryMetric schemasDeleted;
   private final SchemaRegistryMetric customSchemaProviders;
@@ -65,29 +67,27 @@ public class SchemaRegistryMetrics {
     List<MetricsReporter> reporters =
             config.getConfiguredInstances(ProducerConfig.METRIC_REPORTER_CLASSES_CONFIG,
                     MetricsReporter.class);
-
-    String jmxPrefix = "kafka.schema.registry";
-    reporters.add(new JmxReporter(jmxPrefix));
+    reporters.add(new JmxReporter(JMX_PREFIX));
 
     this.metrics = new Metrics(metricConfig, reporters, new SystemTime());
-    this.masterNodeMetric = new SchemaRegistryMetric(metrics, "master-slave-role",
+    this.isMasterNode = new SchemaRegistryMetric(metrics, "master-slave-role",
             new MetricName("master-slave-role", "master-slave-role",
             "1.0 indicates the node is the active master in the cluster and is the"
                     + " node where all register schema and config update requests are "
                     + "served.", configuredTags));
 
     this.schemasCreated = new SchemaRegistryMetric(metrics, "registered-count",
-            new MetricName("num-schemas", "count", "Number of registered schemas",
+            new MetricName("num-schemas-created", "count", "Number of registered schemas",
                            configuredTags));
     this.schemasDeleted = new SchemaRegistryMetric(metrics, "deleted-count",
-            new MetricName("num-schemas", "count", "Number of deleted schemas", configuredTags));
+            new MetricName("num-schemas-deleted", "count", "Number of deleted schemas", configuredTags));
 
     this.customSchemaProviders = new SchemaRegistryMetric(metrics, "custom-schema-provider-count",
-            new MetricName("custom-count", "count", "Number of custom schema providers",
+            new MetricName("custom-count", "provider-count", "Number of custom schema providers",
                     configuredTags));
 
     this.apiCallsSuccess = new SchemaRegistryMetric(metrics, "api-success",
-            new MetricName("api-success-count", "count", "Number of successfull API calls",
+            new MetricName("api-success-count", "success-count", "Number of successfull API calls",
                     configuredTags));
 
     this.apiCallsFailure = new SchemaRegistryMetric(metrics, "api-failure",
@@ -96,11 +96,19 @@ public class SchemaRegistryMetrics {
   }
 
   public void setMaster(boolean isMaster) {
-    masterNodeMetric.set(isMaster ? 1 : 0);
+    isMasterNode.set(isMaster ? 1 : 0);
   }
 
-  public void setCustomSchemaProviders(long count) {
+  public void setCustomSchemaProvidersCount(long count) {
     customSchemaProviders.set(count);
+  }
+
+  public void apiCallSucceded() {
+    apiCallsSuccess.increment();
+  }
+
+  public void apiCallFailed() {
+    apiCallsFailure.increment();
   }
 
   public void schemaRegistered(SchemaValue schemaValue) {
@@ -153,7 +161,6 @@ public class SchemaRegistryMetrics {
                   ProtobufSchema.TYPE, MetricDescriptor.PROTOBUF);
 
   private enum MetricDescriptor {
-    TOTAL("count", "count", "Number of registered schemas"),
     AVRO("count-avro", "count_avro", "Number of registered Avro schemas"),
     JSON("count-json", "count_json", "Number of registered JSON schemas"),
     PROTOBUF("count-protobuf", "count_protobuf", "Number of registered Protobuf schemas");
