@@ -72,8 +72,4 @@ public class MetricsTest extends ClusterTestHarness {
       assertEquals(1, container.getApiCallsFailure().get());
     }
   }
-
-  @Test
-  public void testNodeCount() throws Exception {
-  }
 }
