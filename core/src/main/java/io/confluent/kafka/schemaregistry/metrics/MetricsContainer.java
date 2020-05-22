@@ -50,6 +50,8 @@ public class MetricsContainer {
   private final String commitId;
 
   private final SchemaRegistryMetric isMasterNode;
+  private final SchemaRegistryMetric nodeCount;
+
   private final SchemaRegistryMetric schemasCreated;
   private final SchemaRegistryMetric schemasDeleted;
   private final SchemaRegistryMetric customSchemaProviders;
@@ -84,6 +86,7 @@ public class MetricsContainer {
             "1.0 indicates the node is the active master in the cluster and is the"
             + " node where all register schema and config update requests are "
             + "served.");
+    this.nodeCount = createMetric("node-count", "Number of Schema Registry nodes in the cluster");
 
     this.apiCallsSuccess = createMetric("api-success-count", "Number of successful API calls");
     this.apiCallsFailure = createMetric("api-failure-count", "Number of failed API calls");
@@ -121,6 +124,26 @@ public class MetricsContainer {
                                             String metricGroup, String metricDescription) {
     MetricName mn = new MetricName(metricName, metricGroup, metricDescription, configuredTags);
     return new SchemaRegistryMetric(metrics, sensorName, mn);
+  }
+
+  public SchemaRegistryMetric getNodeCountMetric() {
+    return nodeCount;
+  }
+
+  public SchemaRegistryMetric getIsMaster() {
+    return isMasterNode;
+  }
+
+  public SchemaRegistryMetric getApiCallsSuccess() {
+    return apiCallsSuccess;
+  }
+
+  public SchemaRegistryMetric getApiCallsFailure() {
+    return apiCallsFailure;
+  }
+
+  public SchemaRegistryMetric getCustomSchemaProviderCount() {
+    return customSchemaProviders;
   }
 
   public void setMaster(boolean isMaster) {
