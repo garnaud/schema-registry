@@ -146,36 +146,20 @@ public class MetricsContainer {
     return customSchemaProviders;
   }
 
-  public void setMaster(boolean isMaster) {
-    isMasterNode.set(isMaster ? 1 : 0);
+  public SchemaRegistryMetric getSchemasCreated() {
+    return schemasCreated;
   }
 
-  public void setCustomSchemaProvidersCount(long count) {
-    customSchemaProviders.set(count);
+  public SchemaRegistryMetric getSchemasCreated(SchemaValue schemaValue) {
+    return getSchemaTypeMetric(schemaValue, true);
   }
 
-  public void apiCallSucceeded() {
-    apiCallsSuccess.increment();
+  public SchemaRegistryMetric getSchemasDeleted() {
+    return schemasDeleted;
   }
 
-  public void apiCallFailed() {
-    apiCallsFailure.increment();
-  }
-
-  public void schemaRegistered(SchemaValue schemaValue) {
-    schemasCreated.increment();
-    SchemaRegistryMetric typeMetric = getSchemaTypeMetric(schemaValue, true);
-    if (typeMetric != null) {
-      typeMetric.increment();
-    }
-  }
-
-  public void schemaDeleted(SchemaValue schemaValue) {
-    schemasDeleted.increment();
-    SchemaRegistryMetric typeMetric = getSchemaTypeMetric(schemaValue, false);
-    if (typeMetric != null) {
-      typeMetric.increment();
-    }
+  public SchemaRegistryMetric getSchemasDeleted(SchemaValue schemaValue) {
+    return getSchemaTypeMetric(schemaValue, false);
   }
 
   private SchemaRegistryMetric getSchemaTypeMetric(SchemaValue sv, boolean isRegister) {

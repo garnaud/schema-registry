@@ -103,7 +103,9 @@ public class SchemaRegistryRestApplication extends Application<SchemaRegistryCon
     config.register(new CompatibilityResource(schemaRegistry));
     config.register(new ModeResource(schemaRegistry));
     config.register(new ServerMetadataResource(schemaRegistry, schemaRegistryConfig));
-    config.register(new RestCallMetricFilter(schemaRegistry));
+    config.register(new RestCallMetricFilter(
+            schemaRegistry.getMetricsContainer().getApiCallsSuccess(),
+            schemaRegistry.getMetricsContainer().getApiCallsFailure()));
 
     if (schemaRegistryResourceExtensions != null) {
       try {

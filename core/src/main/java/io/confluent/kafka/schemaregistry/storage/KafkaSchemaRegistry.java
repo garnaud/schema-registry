@@ -170,7 +170,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
             schemaProviderConfigs);
     // Allow custom providers to override default providers
     registerProviders(providerMap, customSchemaProviders);
-    metricsContainer.setCustomSchemaProvidersCount(customSchemaProviders.size());
+    metricsContainer.getCustomSchemaProviderCount().set(customSchemaProviders.size());
     return providerMap;
   }
 
@@ -353,7 +353,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
         }
         idGenerator.init();
       }
-      metricsContainer.setMaster(isMaster());
+      metricsContainer.getIsMaster().set(isMaster() ? 1 : 0);
     } finally {
       kafkaStore.masterLock().unlock();
     }

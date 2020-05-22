@@ -16,6 +16,8 @@
 package io.confluent.kafka.schemaregistry.storage;
 
 import io.confluent.kafka.schemaregistry.id.IdGenerator;
+import io.confluent.kafka.schemaregistry.metrics.MetricsContainer;
+import io.confluent.kafka.schemaregistry.metrics.SchemaRegistryMetric;
 import io.confluent.kafka.schemaregistry.storage.exceptions.StoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,6 +129,7 @@ public class KafkaStoreMessageHandler
   private void handleSchemaUpdate(SchemaKey schemaKey,
                                   SchemaValue schemaValue,
                                   SchemaValue oldSchemaValue) {
+    final MetricsContainer metricsContainer = schemaRegistry.getMetricsContainer();
     if (schemaValue != null) {
       // If the schema is marked to be deleted, we store it in an internal datastructure
       // that holds all deleted schema keys for an id.
@@ -137,16 +140,26 @@ public class KafkaStoreMessageHandler
       // re-registered again and hence we can tombstone the record.
       if (schemaValue.isDeleted()) {
         lookupCache.schemaDeleted(schemaKey, schemaValue);
-        schemaRegistry.getMetricsContainer().schemaDeleted(schemaValue);
+        updateMetrics(metricsContainer.getSchemasDeleted(),
+                      metricsContainer.getSchemasDeleted(schemaValue));
       } else {
         // Update the maximum id seen so far
         idGenerator.schemaRegistered(schemaKey, schemaValue);
         lookupCache.schemaRegistered(schemaKey, schemaValue);
-        schemaRegistry.getMetricsContainer().schemaRegistered(schemaValue);
+        updateMetrics(metricsContainer.getSchemasCreated(),
+                      metricsContainer.getSchemasCreated(schemaValue));
       }
     } else {
       lookupCache.schemaTombstoned(schemaKey, oldSchemaValue);
-      schemaRegistry.getMetricsContainer().schemaDeleted(oldSchemaValue);
+      updateMetrics(metricsContainer.getSchemasDeleted(),
+                    metricsContainer.getSchemasDeleted(oldSchemaValue));
+    }
+  }
+
+  private static void updateMetrics(SchemaRegistryMetric total, SchemaRegistryMetric perType) {
+    total.increment();
+    if (perType != null) {
+      perType.increment();
     }
   }
 }

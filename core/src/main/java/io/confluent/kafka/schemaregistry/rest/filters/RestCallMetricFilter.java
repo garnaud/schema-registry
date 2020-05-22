@@ -15,34 +15,33 @@
 
 package io.confluent.kafka.schemaregistry.rest.filters;
 
-import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
-import io.confluent.kafka.schemaregistry.metrics.MetricsContainer;
+import io.confluent.kafka.schemaregistry.metrics.SchemaRegistryMetric;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 
 public class RestCallMetricFilter implements ContainerResponseFilter {
-  private final MetricsContainer metricsContainer;
+  private final SchemaRegistryMetric metricSucceeded;
+  private final SchemaRegistryMetric metricFailed;
 
-  public RestCallMetricFilter(KafkaSchemaRegistry schemaRegistry) {
-    this.metricsContainer = schemaRegistry.getMetricsContainer();
+  public RestCallMetricFilter(SchemaRegistryMetric metricSucceeded,
+                              SchemaRegistryMetric metricFailed) {
+    this.metricSucceeded = metricSucceeded;
+    this.metricFailed = metricFailed;
   }
 
   @Override
   public void filter(ContainerRequestContext containerRequestContext,
                      ContainerResponseContext containerResponseContext) throws IOException {
-    switch (containerResponseContext.getStatusInfo().getFamily()) {
-      case SUCCESSFUL:
-        metricsContainer.apiCallSucceeded();
-        break;
-      case SERVER_ERROR:
-      case CLIENT_ERROR:
-        metricsContainer.apiCallFailed();
-        break;
-      default:
-        break;
+    final Response.Status.Family family = containerResponseContext.getStatusInfo().getFamily();
+    if (family == Response.Status.Family.SUCCESSFUL) {
+      metricSucceeded.increment();
+    } else if (family == Response.Status.Family.SERVER_ERROR
+            || family == Response.Status.Family.CLIENT_ERROR) {
+      metricFailed.increment();
     }
   }
 }
