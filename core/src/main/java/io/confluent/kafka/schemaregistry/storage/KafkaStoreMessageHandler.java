@@ -137,16 +137,16 @@ public class KafkaStoreMessageHandler
       // re-registered again and hence we can tombstone the record.
       if (schemaValue.isDeleted()) {
         lookupCache.schemaDeleted(schemaKey, schemaValue);
-        schemaRegistry.getSchemaRegistryMetrics().schemaDeleted(schemaValue);
+        schemaRegistry.getMetricsContainer().schemaDeleted(schemaValue);
       } else {
         // Update the maximum id seen so far
         idGenerator.schemaRegistered(schemaKey, schemaValue);
         lookupCache.schemaRegistered(schemaKey, schemaValue);
-        schemaRegistry.getSchemaRegistryMetrics().schemaRegistered(schemaValue);
+        schemaRegistry.getMetricsContainer().schemaRegistered(schemaValue);
       }
     } else {
       lookupCache.schemaTombstoned(schemaKey, oldSchemaValue);
-      schemaRegistry.getSchemaRegistryMetrics().schemaDeleted(oldSchemaValue);
+      schemaRegistry.getMetricsContainer().schemaDeleted(oldSchemaValue);
     }
   }
 }

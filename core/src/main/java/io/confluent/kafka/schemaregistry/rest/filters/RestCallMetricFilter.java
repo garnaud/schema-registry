@@ -16,7 +16,7 @@
 package io.confluent.kafka.schemaregistry.rest.filters;
 
 import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
-import io.confluent.kafka.schemaregistry.utils.SchemaRegistryMetrics;
+import io.confluent.kafka.schemaregistry.utils.MetricsContainer;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -24,10 +24,10 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import java.io.IOException;
 
 public class RestCallMetricFilter implements ContainerResponseFilter {
-  private final SchemaRegistryMetrics schemaRegistryMetrics;
+  private final MetricsContainer metricsContainer;
 
   public RestCallMetricFilter(KafkaSchemaRegistry schemaRegistry) {
-    this.schemaRegistryMetrics = schemaRegistry.getSchemaRegistryMetrics();
+    this.metricsContainer = schemaRegistry.getMetricsContainer();
   }
 
   @Override
@@ -35,11 +35,11 @@ public class RestCallMetricFilter implements ContainerResponseFilter {
                      ContainerResponseContext containerResponseContext) throws IOException {
     switch (containerResponseContext.getStatusInfo().getFamily()) {
       case SUCCESSFUL:
-        schemaRegistryMetrics.apiCallSucceded();
+        metricsContainer.apiCallSucceded();
         break;
       case SERVER_ERROR:
       case CLIENT_ERROR:
-        schemaRegistryMetrics.apiCallFailed();
+        metricsContainer.apiCallFailed();
         break;
       default:
         break;

@@ -58,7 +58,7 @@ import io.confluent.kafka.schemaregistry.storage.exceptions.StoreException;
 import io.confluent.kafka.schemaregistry.storage.exceptions.StoreInitializationException;
 import io.confluent.kafka.schemaregistry.storage.exceptions.StoreTimeoutException;
 import io.confluent.kafka.schemaregistry.storage.serialization.Serializer;
-import io.confluent.kafka.schemaregistry.utils.SchemaRegistryMetrics;
+import io.confluent.kafka.schemaregistry.utils.MetricsContainer;
 import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.exceptions.RestException;
@@ -116,7 +116,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
   private SslFactory sslFactory;
   private IdGenerator idGenerator = null;
   private MasterElector masterElector = null;
-  private final SchemaRegistryMetrics schemaRegistryMetrics;
+  private final MetricsContainer metricsContainer;
   private final Map<String, SchemaProvider> providers;
 
   public KafkaSchemaRegistry(SchemaRegistryConfig config,
@@ -146,7 +146,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
     this.serializer = serializer;
     this.defaultCompatibilityLevel = config.compatibilityType();
     this.defaultMode = Mode.READWRITE;
-    this.schemaRegistryMetrics = new SchemaRegistryMetrics(config);
+    this.metricsContainer = new MetricsContainer(config);
     this.providers = initProviders(config);
     this.lookupCache = lookupCache();
     this.idGenerator = identityGenerator(config);
@@ -170,7 +170,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
             schemaProviderConfigs);
     // Allow custom providers to override default providers
     registerProviders(providerMap, customSchemaProviders);
-    schemaRegistryMetrics.setCustomSchemaProvidersCount(customSchemaProviders.size());
+    metricsContainer.setCustomSchemaProvidersCount(customSchemaProviders.size());
     return providerMap;
   }
 
@@ -222,8 +222,8 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
     return idGenerator;
   }
 
-  public SchemaRegistryMetrics getSchemaRegistryMetrics() {
-    return schemaRegistryMetrics;
+  public MetricsContainer getMetricsContainer() {
+    return metricsContainer;
   }
 
   /**
@@ -353,7 +353,7 @@ public class KafkaSchemaRegistry implements SchemaRegistry, MasterAwareSchemaReg
         }
         idGenerator.init();
       }
-      schemaRegistryMetrics.setMaster(isMaster());
+      metricsContainer.setMaster(isMaster());
     } finally {
       kafkaStore.masterLock().unlock();
     }

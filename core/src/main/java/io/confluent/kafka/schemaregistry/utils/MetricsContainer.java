@@ -45,9 +45,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.Manifest;
 
-public class SchemaRegistryMetrics {
+public class MetricsContainer {
 
-  private static final Logger log = LoggerFactory.getLogger(SchemaRegistryMetrics.class);
+  private static final Logger log = LoggerFactory.getLogger(MetricsContainer.class);
 
   private static final String JMX_PREFIX = "kafka.schema.registry";
 
@@ -65,7 +65,7 @@ public class SchemaRegistryMetrics {
   private final SchemaRegistryMetric apiCallsSuccess;
   private final SchemaRegistryMetric apiCallsFailure;
 
-  public SchemaRegistryMetrics(SchemaRegistryConfig config) {
+  public MetricsContainer(SchemaRegistryConfig config) {
     this.configuredTags =
             Application.parseListToMap(config.getList(RestConfig.METRICS_TAGS_CONFIG));
     this.commitId = getCommitId();
