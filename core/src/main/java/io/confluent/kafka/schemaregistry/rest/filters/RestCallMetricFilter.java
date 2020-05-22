@@ -16,7 +16,7 @@
 package io.confluent.kafka.schemaregistry.rest.filters;
 
 import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
-import io.confluent.kafka.schemaregistry.utils.MetricsContainer;
+import io.confluent.kafka.schemaregistry.metrics.MetricsContainer;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
