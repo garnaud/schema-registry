@@ -39,4 +39,8 @@ public class SchemaRegistryMetric {
     count.set(value);
     sensor.record(value);
   }
+
+  public long get() {
+    return count.get();
+  }
 }

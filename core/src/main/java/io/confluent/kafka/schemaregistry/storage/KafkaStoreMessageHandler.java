@@ -15,6 +15,7 @@
 
 package io.confluent.kafka.schemaregistry.storage;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.id.IdGenerator;
 import io.confluent.kafka.schemaregistry.metrics.MetricsContainer;
 import io.confluent.kafka.schemaregistry.metrics.SchemaRegistryMetric;
@@ -141,19 +142,23 @@ public class KafkaStoreMessageHandler
       if (schemaValue.isDeleted()) {
         lookupCache.schemaDeleted(schemaKey, schemaValue);
         updateMetrics(metricsContainer.getSchemasDeleted(),
-                      metricsContainer.getSchemasDeleted(schemaValue));
+                      metricsContainer.getSchemasDeleted(getSchemaType(schemaValue)));
       } else {
         // Update the maximum id seen so far
         idGenerator.schemaRegistered(schemaKey, schemaValue);
         lookupCache.schemaRegistered(schemaKey, schemaValue);
         updateMetrics(metricsContainer.getSchemasCreated(),
-                      metricsContainer.getSchemasCreated(schemaValue));
+                      metricsContainer.getSchemasCreated(getSchemaType(schemaValue)));
       }
     } else {
       lookupCache.schemaTombstoned(schemaKey, oldSchemaValue);
       updateMetrics(metricsContainer.getSchemasDeleted(),
-                    metricsContainer.getSchemasDeleted(oldSchemaValue));
+                    metricsContainer.getSchemasDeleted(getSchemaType(oldSchemaValue)));
     }
+  }
+
+  private static String getSchemaType(SchemaValue schemaValue) {
+    return schemaValue.getSchemaType() == null ? AvroSchema.TYPE : schemaValue.getSchemaType();
   }
 
   private static void updateMetrics(SchemaRegistryMetric total, SchemaRegistryMetric perType) {

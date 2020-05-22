@@ -19,7 +19,6 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.schemaregistry.rest.SchemaRegistryConfig;
-import io.confluent.kafka.schemaregistry.storage.SchemaValue;
 import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -150,20 +149,19 @@ public class MetricsContainer {
     return schemasCreated;
   }
 
-  public SchemaRegistryMetric getSchemasCreated(SchemaValue schemaValue) {
-    return getSchemaTypeMetric(schemaValue, true);
+  public SchemaRegistryMetric getSchemasCreated(String type) {
+    return getSchemaTypeMetric(type, true);
   }
 
   public SchemaRegistryMetric getSchemasDeleted() {
     return schemasDeleted;
   }
 
-  public SchemaRegistryMetric getSchemasDeleted(SchemaValue schemaValue) {
-    return getSchemaTypeMetric(schemaValue, false);
+  public SchemaRegistryMetric getSchemasDeleted(String type) {
+    return getSchemaTypeMetric(type, false);
   }
 
-  private SchemaRegistryMetric getSchemaTypeMetric(SchemaValue sv, boolean isRegister) {
-    String type = sv.getSchemaType() == null ? AvroSchema.TYPE : sv.getSchemaType();
+  private SchemaRegistryMetric getSchemaTypeMetric(String type, boolean isRegister) {
     switch (type) {
       case AvroSchema.TYPE:
         return isRegister ? avroSchemasCreated : avroSchemasDeleted;
