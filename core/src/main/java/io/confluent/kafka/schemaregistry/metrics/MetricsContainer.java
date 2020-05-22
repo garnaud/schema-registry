@@ -19,7 +19,6 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.schemaregistry.rest.SchemaRegistryConfig;
-import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
 import io.confluent.kafka.schemaregistry.storage.SchemaValue;
 import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
@@ -37,8 +36,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.Manifest;
 
 public class MetricsContainer {
 
@@ -172,19 +171,17 @@ public class MetricsContainer {
 
   private static String getCommitId() {
     try {
-      final String fileName = "/META-INF/MANIFEST.MF";
-      final InputStream manifestFile = KafkaSchemaRegistry.class.getResourceAsStream(fileName);
+      String fileName = "schema-registry-app.properties";
+      InputStream manifestFile = MetricsContainer.class.getResourceAsStream(fileName);
       if (manifestFile != null) {
-        String commitId = new Manifest(manifestFile).getMainAttributes().getValue("Commit-ID");
-        if (commitId != null) {
-          return commitId;
-        }
-        log.error("Missing Commit-ID entry");
+        Properties props = new Properties();
+        props.load(manifestFile);
+        return props.getProperty("application.commitId");
       } else {
-        log.error("Missing manifest file");
+        log.warn("Cannot find properties file");
       }
     } catch (IOException e) {
-      log.error("Cannot open manifest file", e);
+      log.warn("Cannot parse properties file", e);
     }
     return "Unknown";
   }
