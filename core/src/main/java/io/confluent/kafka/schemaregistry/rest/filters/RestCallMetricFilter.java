@@ -35,7 +35,7 @@ public class RestCallMetricFilter implements ContainerResponseFilter {
                      ContainerResponseContext containerResponseContext) throws IOException {
     switch (containerResponseContext.getStatusInfo().getFamily()) {
       case SUCCESSFUL:
-        metricsContainer.apiCallSucceded();
+        metricsContainer.apiCallSucceeded();
         break;
       case SERVER_ERROR:
       case CLIENT_ERROR:

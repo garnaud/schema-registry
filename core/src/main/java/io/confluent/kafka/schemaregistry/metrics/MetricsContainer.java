@@ -15,7 +15,6 @@
 
 package io.confluent.kafka.schemaregistry.metrics;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
@@ -30,8 +29,6 @@ import org.apache.kafka.common.metrics.JmxReporter;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Value;
 import org.apache.kafka.common.utils.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.jar.Manifest;
 
 public class MetricsContainer {
@@ -55,15 +50,20 @@ public class MetricsContainer {
   private final Map<String, String> configuredTags;
   private final String commitId;
 
-  private final Map<String, SchemaCountSensor> schemaCreatedByType = new ConcurrentHashMap<>();
-  private final Map<String, SchemaCountSensor> schemaDeletedByType = new ConcurrentHashMap<>();
-
   private final SchemaRegistryMetric isMasterNode;
   private final SchemaRegistryMetric schemasCreated;
   private final SchemaRegistryMetric schemasDeleted;
   private final SchemaRegistryMetric customSchemaProviders;
   private final SchemaRegistryMetric apiCallsSuccess;
   private final SchemaRegistryMetric apiCallsFailure;
+
+  private final SchemaRegistryMetric avroSchemasCreated;
+  private final SchemaRegistryMetric jsonSchemasCreated;
+  private final SchemaRegistryMetric protobufSchemasCreated;
+
+  private final SchemaRegistryMetric avroSchemasDeleted;
+  private final SchemaRegistryMetric jsonSchemasDeleted;
+  private final SchemaRegistryMetric protobufSchemasDeleted;
 
   public MetricsContainer(SchemaRegistryConfig config) {
     this.configuredTags =
@@ -80,6 +80,7 @@ public class MetricsContainer {
     reporters.add(new JmxReporter(JMX_PREFIX));
 
     this.metrics = new Metrics(metricConfig, reporters, new SystemTime());
+
     this.isMasterNode = new SchemaRegistryMetric(metrics, "master-slave-role",
             new MetricName("master-slave-role", "master-slave-role",
             "1.0 indicates the node is the active master in the cluster and is the"
@@ -94,16 +95,53 @@ public class MetricsContainer {
                     configuredTags));
 
     this.customSchemaProviders = new SchemaRegistryMetric(metrics, "custom-schema-provider-count",
-            new MetricName("custom-count", "provider-count", "Number of custom schema providers",
+            new MetricName("custom-provider-count", "provider-count",
+                    "Number of custom schema providers",
                     configuredTags));
 
     this.apiCallsSuccess = new SchemaRegistryMetric(metrics, "api-success",
-            new MetricName("api-success-count", "success-count", "Number of successfull API calls",
+            new MetricName("api-success-count", "success-count", "Number of successful API calls",
                     configuredTags));
 
     this.apiCallsFailure = new SchemaRegistryMetric(metrics, "api-failure",
             new MetricName("api-failure-count", "failure-count", "Number of failed API calls",
                     configuredTags));
+
+    this.avroSchemasCreated = createMetric("avro-schemas-created",
+            "avro-schemas-created",
+            "avro-schemas-created",
+            "Number of registered Avro schemas");
+
+    this.avroSchemasDeleted = createMetric("avro-schemas-deleted",
+            "avro-schemas-deleted",
+            "avro-schemas-deleted",
+            "Number of deleted Avro schemas");
+
+    this.jsonSchemasCreated = createMetric("json-schemas-created",
+            "json-schemas-created",
+            "json-schemas-created",
+            "Number of registered JSON schemas");
+
+    this.jsonSchemasDeleted = createMetric("json-schemas-deleted",
+            "json-schemas-deleted",
+            "json-schemas-deleted",
+            "Number of deleted JSON schemas");
+
+    this.protobufSchemasCreated = createMetric("protobuf-schemas-created",
+            "protobuf-schemas-created",
+            "protobuf-schemas-created",
+            "Number of registered Protobuf schemas");
+
+    this.protobufSchemasDeleted = createMetric("protobuf-schemas-deleted",
+            "protobuf-schemas-deleted",
+            "protobuf-schemas-deleted",
+            "Number of deleted Protobuf schemas");
+  }
+
+  private SchemaRegistryMetric createMetric(String sensorName, String metricName,
+                                            String metricGroup, String metricDescription) {
+    MetricName mn = new MetricName(metricName, metricGroup, metricDescription, configuredTags);
+    return new SchemaRegistryMetric(metrics, sensorName, mn);
   }
 
   public void setMaster(boolean isMaster) {
@@ -114,7 +152,7 @@ public class MetricsContainer {
     customSchemaProviders.set(count);
   }
 
-  public void apiCallSucceded() {
+  public void apiCallSucceeded() {
     apiCallsSuccess.increment();
   }
 
@@ -124,66 +162,31 @@ public class MetricsContainer {
 
   public void schemaRegistered(SchemaValue schemaValue) {
     schemasCreated.increment();
-    String type = getSchemaType(schemaValue);
-    SchemaCountSensor sensor = schemaCreatedByType.computeIfAbsent(type,
-        t -> new SchemaCountSensor(getMetricDescriptor(t)));
-    sensor.increment();
+    SchemaRegistryMetric typeMetric = getSchemaTypeMetric(schemaValue, true);
+    if (typeMetric != null) {
+      typeMetric.increment();
+    }
   }
 
   public void schemaDeleted(SchemaValue schemaValue) {
     schemasDeleted.increment();
-    String type = getSchemaType(schemaValue);
-    SchemaCountSensor sensor = schemaDeletedByType.computeIfAbsent(type,
-        t -> new SchemaCountSensor(getMetricDescriptor(t)));
-    sensor.increment();
-  }
-
-  private static String getSchemaType(SchemaValue schemaValue) {
-    return schemaValue.getSchemaType() == null ? AvroSchema.TYPE : schemaValue.getSchemaType();
-  }
-
-  private class SchemaCountSensor {
-    private final AtomicLong count = new AtomicLong();
-    private final Sensor sensor;
-
-    public SchemaCountSensor(MetricDescriptor md) {
-      sensor = metrics.sensor(md.sensorName);
-      sensor.add(new MetricName("num-schemas", md.group, md.description, configuredTags),
-                 new Value());
-    }
-
-    public void increment() {
-      sensor.record(count.addAndGet(1));
+    SchemaRegistryMetric typeMetric = getSchemaTypeMetric(schemaValue, false);
+    if (typeMetric != null) {
+      typeMetric.increment();
     }
   }
 
-  private static MetricDescriptor getMetricDescriptor(String type) {
-    MetricDescriptor md = metricDescriptorMap.get(type);
-    if (md == null) {
-      throw new IllegalArgumentException("Invalid schema type: " + type);
-    } else {
-      return md;
-    }
-  }
-
-  private static final Map<String, MetricDescriptor> metricDescriptorMap =
-          ImmutableMap.of(AvroSchema.TYPE, MetricDescriptor.AVRO,
-                  JsonSchema.TYPE, MetricDescriptor.JSON,
-                  ProtobufSchema.TYPE, MetricDescriptor.PROTOBUF);
-
-  private enum MetricDescriptor {
-    AVRO("count-avro", "count_avro", "Number of registered Avro schemas"),
-    JSON("count-json", "count_json", "Number of registered JSON schemas"),
-    PROTOBUF("count-protobuf", "count_protobuf", "Number of registered Protobuf schemas");
-
-    public final String group;
-    public final String description;
-    public final String sensorName;
-
-    MetricDescriptor(String sensorName, String group, String description) {
-      this.sensorName = sensorName;
-      this.group = group;
-      this.description = description;
+  private SchemaRegistryMetric getSchemaTypeMetric(SchemaValue sv, boolean isRegister) {
+    String type = sv.getSchemaType() == null ? AvroSchema.TYPE : sv.getSchemaType();
+    switch (type) {
+      case AvroSchema.TYPE:
+        return isRegister ? avroSchemasCreated : avroSchemasDeleted;
+      case JsonSchema.TYPE:
+        return isRegister ? jsonSchemasCreated : jsonSchemasDeleted;
+      case ProtobufSchema.TYPE:
+        return isRegister ? protobufSchemasCreated : protobufSchemasDeleted;
+      default:
+        return null;
     }
   }
 
@@ -205,5 +208,4 @@ public class MetricsContainer {
     }
     return "Unknown";
   }
-
 }
