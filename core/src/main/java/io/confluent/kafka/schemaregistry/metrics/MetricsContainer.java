@@ -81,61 +81,41 @@ public class MetricsContainer {
 
     this.metrics = new Metrics(metricConfig, reporters, new SystemTime());
 
-    this.isMasterNode = new SchemaRegistryMetric(metrics, "master-slave-role",
-            new MetricName("master-slave-role", "master-slave-role",
+    this.isMasterNode = createMetric("master-slave-role",
             "1.0 indicates the node is the active master in the cluster and is the"
-                    + " node where all register schema and config update requests are "
-                    + "served.", configuredTags));
+            + " node where all register schema and config update requests are "
+            + "served.");
 
-    this.schemasCreated = new SchemaRegistryMetric(metrics, "registered-count",
-            new MetricName("num-schemas-created", "count", "Number of registered schemas",
-                    configuredTags));
-    this.schemasDeleted = new SchemaRegistryMetric(metrics, "deleted-count",
-            new MetricName("num-schemas-deleted", "count", "Number of deleted schemas",
-                    configuredTags));
+    this.apiCallsSuccess = createMetric("api-success-count", "Number of successful API calls");
+    this.apiCallsFailure = createMetric("api-failure-count", "Number of failed API calls");
 
-    this.customSchemaProviders = new SchemaRegistryMetric(metrics, "custom-schema-provider-count",
-            new MetricName("custom-provider-count", "provider-count",
-                    "Number of custom schema providers",
-                    configuredTags));
+    this.customSchemaProviders = createMetric("custom-schema-provider-count",
+            "Number of custom schema providers");
 
-    this.apiCallsSuccess = new SchemaRegistryMetric(metrics, "api-success",
-            new MetricName("api-success-count", "success-count", "Number of successful API calls",
-                    configuredTags));
-
-    this.apiCallsFailure = new SchemaRegistryMetric(metrics, "api-failure",
-            new MetricName("api-failure-count", "failure-count", "Number of failed API calls",
-                    configuredTags));
+    this.schemasCreated = createMetric("registered-count", "Number of registered schemas");
+    this.schemasDeleted = createMetric("deleted-count", "Number of deleted schemas");
 
     this.avroSchemasCreated = createMetric("avro-schemas-created",
-            "avro-schemas-created",
-            "avro-schemas-created",
             "Number of registered Avro schemas");
 
     this.avroSchemasDeleted = createMetric("avro-schemas-deleted",
-            "avro-schemas-deleted",
-            "avro-schemas-deleted",
             "Number of deleted Avro schemas");
 
     this.jsonSchemasCreated = createMetric("json-schemas-created",
-            "json-schemas-created",
-            "json-schemas-created",
             "Number of registered JSON schemas");
 
     this.jsonSchemasDeleted = createMetric("json-schemas-deleted",
-            "json-schemas-deleted",
-            "json-schemas-deleted",
             "Number of deleted JSON schemas");
 
     this.protobufSchemasCreated = createMetric("protobuf-schemas-created",
-            "protobuf-schemas-created",
-            "protobuf-schemas-created",
             "Number of registered Protobuf schemas");
 
     this.protobufSchemasDeleted = createMetric("protobuf-schemas-deleted",
-            "protobuf-schemas-deleted",
-            "protobuf-schemas-deleted",
             "Number of deleted Protobuf schemas");
+  }
+
+  private SchemaRegistryMetric createMetric(String name, String metricDescription) {
+    return createMetric(name, name, name, metricDescription);
   }
 
   private SchemaRegistryMetric createMetric(String sensorName, String metricName,
